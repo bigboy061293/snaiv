@@ -1,0 +1,45 @@
+File main
+File main truc tiep noi chuyen voi controller va cube
+
+File main - Cube: Serial 2, Telemetry 2
+File main - Controller: TCP
+
+
+Init radar module
+Init flowsensor module
+Init level sensor module
+Init fpv module
+Connected to controller
+Connected to Cube
+
+while True:
+	read stream from Cube:
+
+???Class sensorInformation.py
+
+Class sensors:
+
+. update sensor
+. 
+
+Thread radar:
+..Init the CAN/SPI
+..Function: Read from CAN bus
+..Function: Read from Mavlink
+..Function: Return 8 sectors
+..Function: Return 360 degree
+..Function: Under bung
+..Function: Log Radar information
+..Function:
+
+
+File: 
+	date.now()
+Log syntax:
+	date.now(), columms, ...
+
+
+Thread flowsensor
+..Init the flowsensor
+..Function: Update sensorflow
+..Calculate the
