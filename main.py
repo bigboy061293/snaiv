@@ -3,20 +3,27 @@ from common_import import *
 
 common_vars.linkAP = mavutil.mavlink_connection(VIANS_DATALINK_MODULE, dialect = "ardupilotmega")
 
-common_vars.vianSAlt = 10
-print common_vars.vianSAlt
+establish_link.connectVianS(common_vars.linkAP)
+
 	
 _updateTelemetry = common_vars.updateTelemetry(1, "Tele")
 _updateTelemetry.start()
-time.sleep(4)
-_updateTelemetry.stop()
-time.sleep(2)
-_updateTelemetry.resume()
-print 'herhe'
+_updateTelemetry.pause()
+
+_updateWaypoint = common_vars.updateWaypoint(2, 'ms')
+_updateWaypoint.start()
+time.sleep(1)
+_updateWaypoint.pause()
+
+_readRadarThree = radars_mama.readRadarThree(3, 'rd')
+_readRadarThree.start()
+_updateProcess = radars_mama.updateProcess(4,'pc')
+_updateProcess.start()
 while True:
-	print common_vars.vianSLat
-	common_vars.vianSLat +=1000
-	print math.sin(90)
-	time.sleep(1)
+	#print common_vars.vianSGNSS
+	time.sleep(0.5)
 	pass
+	
+	
+	
 

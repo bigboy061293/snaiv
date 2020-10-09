@@ -1,4 +1,3 @@
 
-vianSLat = 0
-vianSLong = 0
-vianSAlt = 0
+vianSGNSS = [0.00, 0.00, 0.00] # Lat Lon Alt
+viansSAltitude = [0.00, 0.00, 0.00] # R  P Y
