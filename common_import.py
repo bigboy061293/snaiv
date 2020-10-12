@@ -6,7 +6,7 @@ except:
 import time
 
 import math
-
+import cmd_msg
 import common_vars
 import establish_link
 import input_output

@@ -2,13 +2,30 @@ from common_import import *
 import can
 import threading
 import numpy as np
-vianSCanBus = can.interface.Bus('can0', bustype = 'socketcan_native')
+import queue
+que = queue.Queue()
+#border +-45 degree for OA https://ardupilot.org/dev/docs/code-overview-object-avoidance.html
+bordersEightSectors = [67.5, 22.5, 337.5, 292.5, 247.5, 202.5, 157.5, 112.5]
+degreeEachSectors = 45.00
+
+vianSCanBus = can.interface.Bus('can0', bustype = 'socketcan')
 radarMaxRangeMet = 40
 radarMinRangeMet = 0.1
 radarMaxRange = 4001
 sectorEight = [radarMaxRange,radarMaxRange,radarMaxRange,radarMaxRange,
 			radarMaxRange,radarMaxRange,radarMaxRange,radarMaxRange]
 sectorMulti = [[0.0,0.0]]
+timeOut = [0,0,0,0]
+timeCount = [0,0,0,0]
+timeOutSet = 100
+radarTick = 0
+radarTickSet = 10
+readarReadyToRead = 0
+mr72appear=[0,0,0,0]
+mr72ThreeSectors=[radarMaxRange,radarMaxRange,radarMaxRange,
+				radarMaxRange,radarMaxRange,radarMaxRange,
+				radarMaxRange,radarMaxRange,radarMaxRange,
+				radarMaxRange,radarMaxRange,radarMaxRange]
 def xyReturnSec(x,y, degreeDec):
 	abc = math.atan2(y,x) * (180.00 / math.pi)
 	abc = int(abc * 100)
@@ -19,7 +36,27 @@ def xyReturnSec(x,y, degreeDec):
 	seccc = round(abc / (degreeDec*100))
 	mag = math.sqrt(pow(x,2) + pow(y,2))
 	return seccc, mag
-	
+
+def inTheSectors(deg, bordersEightSectors):
+	if (deg >= 0 and deg < bordersEightSectors[1]):
+		deg += 360
+	if (deg >= bordersEightSectors[0]) and (deg < bordersEightSectors[7]):
+		return 0
+	if (deg >= bordersEightSectors[1]) and (deg < bordersEightSectors[0]):
+		return 1
+	if (deg >= bordersEightSectors[2]) and (deg <= bordersEightSectors[1] + 360):
+		return 2
+	if (deg >= bordersEightSectors[3]) and (deg < bordersEightSectors[2]):
+		return 3
+	if (deg >= bordersEightSectors[4]) and (deg < bordersEightSectors[3]):
+		return 4
+	if (deg >= bordersEightSectors[5]) and (deg < bordersEightSectors[4]):
+		return 5
+	if (deg >= bordersEightSectors[6]) and (deg < bordersEightSectors[5]):
+		return 6
+	if (deg >= bordersEightSectors[7]) and (deg < bordersEightSectors[6]):
+		return 7
+	#return 'None'
 	
 class updateProcess(threading.Thread):
 	def __init__(self, threadID, name):
@@ -31,27 +68,51 @@ class updateProcess(threading.Thread):
 	def run(self):
 		global sectorEight
 		global sectorMulti
+		np.set_printoptions(precision=3)
+		np.set_printoptions(suppress=True)
 		while True:
-			time.sleep(0.01)
-			#sectorEight[0] = sectorMulti
-			if np.size(sectorMulti,0) > 2:
-				#print np.size(sectorMulti,1)
-				#print sectorMulti
-				if np.size(sectorMulti,0) == 1:
+			
+			print mr72ThreeSectors
+			
+			"""
+			if not readarReadyToRead:
 					continue
-				else:
-					sector0 = (sectorMulti[:,0] > 67.5) & (sectorMulti[:,0] < 112.5)
-				newSec = sectorMulti[sector0]
-				print newSec
-			#print sectorMulti
-			#print sector0
-			sectorMulti = [[0,0]]
+			
+			while (que.empty() == False):
+				#print que.qsize()
+				secinQ = que.get()
+				if secinQ[1] < radarMinRangeMet:
+					continue
+				tempIn = inTheSectors(secinQ[0], bordersEightSectors)
+				temp[tempIn] = round(float(min(secinQ[1],temp[tempIn])), 2)
+			print temp
+			
+			
+			for point in secinQ:
+				if point[1] < radarMinRangeMet:
+					continue
+				tempIn = inTheSectors(point[0], bordersEightSectors)
+				#print point, inTheSectors(point[0], bordersEightSectors)
+				
+				temp[tempIn] = round (float (min(point[1], temp[tempIn])), 2)
+			print sectorMulti
+			print temp
+			#print timeOut
+			"""
+			#sectorMulti = [[0,0]]
 	def pause(self):
 		self.running = False
 	def resume(self):
 		self.running = True
 	def stop(self):
 		self._term = True
+def constraintNew(num, up, down):
+	a = num
+	if a >= up:
+		a = up
+	if a <= down:
+		a = down
+	return a
 class readRadarThree(threading.Thread):
 	def __init__(self, threadID, name):
 		threading.Thread.__init__(self)
@@ -59,48 +120,159 @@ class readRadarThree(threading.Thread):
 		self.name = name
 		self.running = True   
 		self._term = False 
+		self.mr72appear = [0,0,0,0]
 	def run(self):
 		global sectorMulti
+		global timeCount
+		global timeOut
+		global readarReadyToRead
+		global mr72appear
+		global mr72ThreeSectors
 		while True and not self._term:
 			if self.running:
+			
+				
+				
+				
 				canMessage = vianSCanBus.recv() 
 				if canMessage.arbitration_id == 0X60B: #front
 					y = (canMessage.data[1] * 32 + (canMessage.data[2] >> 3)) * 0.2 - 500
 					x = ((canMessage.data[2]&0X07) * 256 + canMessage.data[3]) * 0.2 - 204.6
 					sector, mag = xyReturnSec(x,y,1)
-					sectorMulti = np.append(sectorMulti,[[sector,mag]],axis = 0)
-					
+					mag = round(mag,2)
+					rg = (canMessage.data[6] >> 3) & 0X03	
+					"""
+					if (sector, mag) not in sectorMulti:
+						sectorMulti = np.append(sectorMulti,[[sector,mag]],axis = 0)
+					cfr +=1
+					cfr = constraintNew(cfr,0,3)
+					"""
+					if rg == 1:
+						mr72ThreeSectors[0] = mag
+					elif rg ==2 :
+						mr72ThreeSectors[1] = mag
+					elif rg == 3:
+						mr72ThreeSectors[2] = mag
+						
 					
 				elif canMessage.arbitration_id == 0X61B: #right
 					y = (canMessage.data[1] * 32 + (canMessage.data[2] >> 3)) * 0.2 - 500
 					x = ((canMessage.data[2]&0X07) * 256 + canMessage.data[3]) * 0.2 - 204.6
 					sector, mag = xyReturnSec(x,y,1)
+					mag = round(mag,2)
+					"""
 					sector+=270
 					if sector > 360:
 						sector-=360
-					sectorMulti = np.append(sectorMulti,[sector,mag])
-					
+					if (sector, mag) not in sectorMulti:
+						sectorMulti = np.append(sectorMulti,[[sector,mag]],axis = 0)
+					cri +=1
+					cri = constraintNew(cri,0,3)
+					"""
+					rg = (canMessage.data[6] >> 3) & 0X03	
+				
+					if rg == 1:
+						mr72ThreeSectors[3] = mag
+					elif rg ==2 :
+						mr72ThreeSectors[4] = mag
+					elif rg == 3:
+						mr72ThreeSectors[5] = mag
 					
 				elif canMessage.arbitration_id == 0X62B: #rear
 					y = (canMessage.data[1] * 32 + (canMessage.data[2] >> 3)) * 0.2 - 500
 					x = ((canMessage.data[2]&0X07) * 256 + canMessage.data[3]) * 0.2 - 204.6
 					sector, mag = xyReturnSec(x,y,1)
+					mag = round(mag,2)
+					"""
 					sector+=180
 					if sector > 360:
 						sector-=360
-					sectorMulti = np.append(sectorMulti,[sector,mag])
-					
+					if (sector, mag) not in sectorMulti:
+						sectorMulti = np.append(sectorMulti,[[sector,mag]],axis = 0)
+					cre+=1
+					cre = constraintNew(cre,0,3)
+					"""
+					rg = (canMessage.data[6] >> 3) & 0X03	
+				
+					if rg == 1:
+						mr72ThreeSectors[6] = mag
+					elif rg ==2 :
+						mr72ThreeSectors[7] = mag
+					elif rg == 3:
+						mr72ThreeSectors[8] = mag
 
 				elif canMessage.arbitration_id == 0X63B: #left
 					y = (canMessage.data[1] * 32 + (canMessage.data[2] >> 3)) * 0.2 - 500
 					x = ((canMessage.data[2]&0X07) * 256 + canMessage.data[3]) * 0.2 - 204.6
 					sector, mag = xyReturnSec(x,y,1)
+					mag = round(mag,2)
+					"""
 					sector+=90
 					
-					sectorMulti = np.append(sectorMulti,[sector,mag])
-		
+					if (sector, mag) not in sectorMulti:
+						sectorMulti = np.append(sectorMulti,[[sector,mag]],axis = 0)
+					cle+=1
+					cle = constraintNew(cle,0,3)\
+					"""
+					rg = (canMessage.data[6] >> 3) & 0X03	
+					if rg == 1:
+						mr72ThreeSectors[9] = mag
+					elif rg ==2 :
+						mr72ThreeSectors[10] = mag
+					elif rg == 3:
+						mr72ThreeSectors[11] = mag
+						
+				elif canMessage.arbitration_id == 0X60A: 
+					timeCount[0] = 0
+					mr72appear[0] = 1
+				elif canMessage.arbitration_id == 0X61A: 
+					timeCount[1] = 0
+					mr72appear[1] = 1
+				elif canMessage.arbitration_id == 0X62A: 
+					timeCount[2] = 0
+					mr72appear[2] = 1
+				elif canMessage.arbitration_id == 0X63A: 
+					timeCount[3] = 0
+					mr72appear[3] = 1
+				timeCount[0] += 1
+				timeCount[1] += 1
+				timeCount[2] += 1
+				timeCount[3] += 1
+				
+				for i in range(4):
+					if timeCount[i] > timeOutSet:
+						timeOut[i] = 1
+					else:
+						timeOut[i] = 0
+				
 	def pause(self):
 		#self._stop_event.set()
+		self.running = False
+	def resume(self):
+		self.running = True
+	def stop(self):
+		self._term = True
+
+class radarCounter(threading.Thread):
+	def __init__(self, threadID, name):
+		threading.Thread.__init__(self)
+		self.threadID = threadID
+		self.name = name
+		self.running = True   
+		self._term = False 
+		global sectorEight
+	def run(self):
+			while True:
+				#radarTick+=1
+				#if radarTick >= radarTickSet:
+				#	radarTick = 0
+					#sectorEight = [radarMaxRange,radarMaxRange,radarMaxRange,radarMaxRange,
+						#radarMaxRange,radarMaxRange,radarMaxRange,radarMaxRange]
+					
+					
+					
+				time.sleep(0.001)
+	def pause(self):
 		self.running = False
 	def resume(self):
 		self.running = True
