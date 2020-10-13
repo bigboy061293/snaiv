@@ -13,7 +13,7 @@ vianSAltitude = [0.00, 0.00, 0.00] # R  P Y
 # RC0 (ignore this) RC1, RC2, RC3, RC4, RC5, RC6, RC7, RC8, RC9, RC10, RC11 
 vianSRCSBUS = [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100]
 
-
+vianSCurrenMode = 0
 vianSMissionList = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0,0]]) 
 
 vianSCurrentMission = 0
@@ -67,6 +67,25 @@ class updateTelemetry(threading.Thread):
 						continue
 					if msg.get_type() == 'MISSION_CURRENT':
 						vianSCurrentMission = msg.seq
+						continue
+					if msg.get_type() == 'HEARTBEAT':
+							#https://ardupilot.org/dev/docs/apmcopter-adding-a-new-flight-mode.html
+							#17 is break
+						if msg.custom_mode == 0: 
+							vianSCurrenMode = 'STAB'
+							continue
+						if msg.custom_mode == 2: 
+							vianSCurrenMode = 'ALTH'
+							continue
+						if msg.custom_mode == 3: 
+							vianSCurrenMode = 'AUTO'
+							continue
+						if msg.custom_mode == 5: 
+							vianSCurrenMode = 'LOIT'
+							continue
+						if msg.custom_mode == 6: 
+							vianSCurrenMode = 'RTL'
+							continue
 						continue
 						
 					

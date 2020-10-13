@@ -3,6 +3,7 @@ from common_import import *
 common_vars.linkAP = mavutil.mavlink_connection(VIANS_DATALINK_MODULE, dialect = "ardupilotmega")
 
 establish_link.connectVianS(common_vars.linkAP)
+input_output.initializeJNIO()
 
 	
 _updateTelemetry = common_vars.updateTelemetry(1, "Tele")
@@ -14,11 +15,13 @@ _keyboardInput = input_output.keyboardInput(4, 'io')
 _keyboardInput.start()
 
 
-#_updateProcess = radars_mama.updateProcess(4,'pc')
-#_updateProcess.start()
+_updateProcess = radars_mama.updateProcess(5,'pc')
+_updateProcess.start()
 
-#_radarCounter = radars_mama.radarCounter(5, 'ct')
-#_radarCounter.start()
+_radarCounter = radars_mama.radarCounter(6, 'ct')
+_radarCounter.start()
+_pumpControl = input_output.pumpControl(7,'pcc')
+_pumpControl.start()
 """
 _updateTelemetry.pause()
 
