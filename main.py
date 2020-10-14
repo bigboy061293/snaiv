@@ -1,5 +1,5 @@
 from common_import import *
-
+#import psutil
 common_vars.linkAP = mavutil.mavlink_connection(VIANS_DATALINK_MODULE, dialect = "ardupilotmega")
 
 establish_link.connectVianS(common_vars.linkAP)
@@ -22,6 +22,8 @@ _radarCounter = radars_mama.radarCounter(6, 'ct')
 _radarCounter.start()
 _pumpControl = input_output.pumpControl(7,'pcc')
 _pumpControl.start()
+_logging = log_record.logging(8,'lg')
+_logging.start()
 """
 _updateTelemetry.pause()
 

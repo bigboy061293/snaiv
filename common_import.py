@@ -11,7 +11,7 @@ import common_vars
 import establish_link
 import input_output
 import radars_mama
-
+import log_record
 from pymavlink.dialects.v20 import ardupilotmega as mavlink2
 
 SIMULATOR_UDP = 'udp:127.0.0.1:14550'

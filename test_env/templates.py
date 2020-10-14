@@ -8,7 +8,7 @@ class updateTelemetry(threading.Thread):
 		self.running = True   
 		self._term = False 
 	def run(self):
-		global vianSGNSS
+		
 		while True and not self._term:
 			if self.running:
 			
